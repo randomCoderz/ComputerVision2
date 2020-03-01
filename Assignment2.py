@@ -5,51 +5,52 @@ import numpy as np
 # Pass in grayscale image, min and max threshold
 def sobel(ig):
     # Apply Gaussian Blur
-    img1 = cv.GaussianBlur(ig, (5,5), 1)
+    img1 = cv.GaussianBlur(ig, (5, 5), 1)
     # Apply Sobel
     sobelx = cv.Sobel(img1, cv.CV_64F, 1, 0, ksize=5)
     sobely = cv.Sobel(img1, cv.CV_64F, 0, 1, ksize=5)
     g = np.hypot(sobelx, sobely)
+
     # Get in degrees
     theta = np.degrees(np.arctan2(sobelx, sobely))
     return g, theta
 
 
-def non_max_suppression(ig, di, g):
-    z_image = np.zeros(ig.shape)
-    di[di < 0] += 180
+def non_max_suppression(ig, theta, grad):
+    r_img = np.zeros(ig.shape)
+    theta[theta < 0] += 180
 
     # Iterate
-    for i in range(z_image.shape[0]):
-        for j in range(z_image.shape[1]):
+    for i in range(r_img.shape[0]):
+        for j in range(r_img.shape[1]):
             try:
-                q = 255
-                r = 255
+                x = 255
+                y = 255
 
                 # 0 degrees
-                if (0 <= di[i, j] < 22.5) or (157.5 <= di[i,j] <= 180):
-                    q = g[i, j+1]
-                    r = g[i, j-1]
+                if (0 <= theta[i, j] < 22.5) or (157.5 <= theta[i,j] <= 180):
+                    x = grad[i, j+1]
+                    y = grad[i, j-1]
                 # 45 degrees
-                elif 22.5 <= di[i, j] < 67.5:
-                    q = g[i+1, j-1]
-                    r = g[i, j-1]
+                elif 22.5 <= theta[i, j] < 67.5:
+                    x = grad[i+1, j-1]
+                    y = grad[i, j-1]
                 # 90 degrees
-                elif 67.5 <= di[i, j] < 112.5:
-                    q = g[i+1, j-1]
-                    r = g[i-1, j+1]
+                elif 67.5 <= theta[i, j] < 112.5:
+                    x = grad[i+1, j-1]
+                    y = grad[i-1, j+1]
                 # 135 degrees
-                elif 112.5 <= di[i, j] < 157.5:
-                    q = g[i-1, j-1]
-                    r = g[i+1, j+1]
+                elif 112.5 <= theta[i, j] < 157.5:
+                    x = grad[i-1, j-1]
+                    y = grad[i+1, j+1]
 
-                if(g[i,j] >= q) and(g[i,j] >= r):
-                    z_image[i,j] = g[i,j]
+                if(grad[i,j] >= x) and(grad[i,j] >= y):
+                    r_img[i,j] = grad[i,j]
                 else:
-                    z_image[i,j] = 0
+                    r_img[i,j] = 0
             except IndexError:
                 pass
-    return z_image
+    return r_img
 
 
 def d_threshold(g_mag, l_ratio, h_ratio):
@@ -102,17 +103,17 @@ def open_cv_canny(ig, mxi, mxa):
     return cv.Canny(ig, mxi, mxa)
 
 
-def open_cv_Laplacian(ig, val):
+def open_cv_laplacian(ig, val):
     return cv.Laplacian(ig, val)
 
 
 if __name__ == "__main__":
     # Define the image and make it grayscaled
-    img = cv.imread('lambo.jpg', 0)
-    thres_low = 0.05
-    thres_high = 0.08
+    img = cv.imread('ball.png', 0)
+    thres_low = 0.5
+    thres_high = 0.10
     mc = manual_canny(img, thres_low, thres_high)
     cv.imshow('MC', mc)
     cv.imshow('OpenCV Canny Image', open_cv_canny(img, thres_low, thres_high))
-    cv.imshow('OpenCV Laplacian', open_cv_Laplacian(img, 0))
+    cv.imshow('OpenCV Laplacian', open_cv_laplacian(img, 0))
     cv.waitKey()
